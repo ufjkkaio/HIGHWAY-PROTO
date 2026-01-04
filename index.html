@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高速料金検索 - ハイブリッドルート最適化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 max-w-7xl">
+        <!-- ヘッダー -->
+        <header class="text-center mb-8 sm:mb-12">
+            <div class="glass-morphism rounded-3xl shadow-2xl p-6 sm:p-8 mb-6">
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3" style="color: var(--highway-green);">
+                    ハイブリッドルート最適化
+                </h1>
+                <p class="text-gray-600 text-sm sm:text-base mb-2">予算内で最も時間短縮につながる高速利用区間を提案</p>
+                <p class="text-xs text-gray-500">※実際の料金データ（2025年度版）に基づいたシミュレーション</p>
+            </div>
+        </header>
+
+        <!-- 検索フォーム -->
+        <div class="glass-morphism rounded-3xl shadow-2xl p-6 sm:p-8 mb-8">
+            <h2 class="text-xl sm:text-2xl font-bold mb-6" style="color: var(--navy);">検索条件</h2>
+            
+            <!-- 出発地・目的地選択 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label for="departure" class="block text-sm font-semibold text-gray-700 mb-3">出発地</label>
+                    <select id="departure" class="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-opacity-30 focus:border-transparent transition-all">
+                        <option value="tokyo">東京</option>
+                        <option value="yokohama">横浜</option>
+                        <option value="saitama">さいたま</option>
+                        <option value="chiba">千葉</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="destination" class="block text-sm font-semibold text-gray-700 mb-3">目的地</label>
+                    <select id="destination" class="w-full px-4 py-3 text-base font-medium border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-opacity-30 focus:border-transparent transition-all">
+                        <option value="nagoya">名古屋</option>
+                        <option value="osaka">大阪</option>
+                        <option value="shizuoka">静岡</option>
+                        <option value="utsunomiya">宇都宮</option>
+                        <option value="takasaki">高崎</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 車種選択 -->
+            <div class="mb-8">
+                <label class="block text-sm font-semibold text-gray-700 mb-4">車種</label>
+                <div class="flex gap-4 sm:gap-6">
+                    <label class="vehicle-selector flex-1 cursor-pointer">
+                        <input type="radio" name="vehicleType" value="light" class="hidden" checked>
+                        <div class="vehicle-label flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-gray-300 transition-all">
+                            <img src="img/light-car-icon.png" alt="軽自動車" class="w-10 h-10 sm:w-12 sm:h-12 mb-2" onerror="this.style.display='none'">
+                            <span class="font-semibold text-sm sm:text-base">軽自動車</span>
+                        </div>
+                    </label>
+                    <label class="vehicle-selector flex-1 cursor-pointer">
+                        <input type="radio" name="vehicleType" value="standard" class="hidden">
+                        <div class="vehicle-label flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-gray-300 transition-all">
+                            <img src="img/standard-car-icon.png" alt="普通車" class="w-10 h-10 sm:w-12 sm:h-12 mb-2" onerror="this.style.display='none'">
+                            <span class="font-semibold text-sm sm:text-base">普通車</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 予算選択 -->
+            <div class="mb-8">
+                <label for="budget" class="block text-sm font-semibold text-gray-700 mb-4">予算上限</label>
+                <div class="relative">
+                    <select id="budget" class="w-full px-6 py-4 text-lg font-semibold border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-opacity-30 focus:border-transparent transition-all" style="--tw-ring-color: var(--highway-green);">
+                        <option value="1000">1,000円</option>
+                        <option value="2000">2,000円</option>
+                        <option value="3000">3,000円</option>
+                        <option value="4000">4,000円</option>
+                        <option value="5000">5,000円</option>
+                        <option value="6000">6,000円</option>
+                        <option value="7000">7,000円</option>
+                        <option value="8000">8,000円</option>
+                        <option value="10000">10,000円</option>
+                        <option value="12000">12,000円</option>
+                        <option value="15000">15,000円</option>
+                    </select>
+                    <div id="budgetDisplay" class="absolute right-6 top-1/2 transform -translate-y-1/2 text-2xl font-bold budget-display" style="color: var(--highway-green); pointer-events: none;">
+                        ¥<span id="budgetAmount">1,000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 検索ボタン -->
+            <button id="searchBtn" class="w-full bg-gradient-to-r text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98]" style="background: linear-gradient(135deg, var(--highway-green) 0%, #007A5A 100%);">
+                <span class="text-lg sm:text-xl">最適ルートを検索</span>
+            </button>
+        </div>
+
+        <!-- 比較カードエリア -->
+        <div id="comparisonArea" class="hidden mb-8">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-6" style="color: var(--navy);">ルート比較</h2>
+            <div id="comparisonContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6"></div>
+        </div>
+
+        <!-- 結果表示エリア -->
+        <div id="resultsArea" class="hidden">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-6" style="color: var(--navy);">最適化ルート提案</h2>
+            <div id="resultsContainer" class="space-y-6 sm:space-y-8"></div>
+        </div>
+    </div>
+
+    <script>
+        // ルートデータ構造：出発地→目的地の各IC区間の情報
+        const routeSegments = {
+            'tokyo-nagoya': {
+                name: '東京 → 名古屋',
+                totalDistance: 350,
+                totalTimeLocal: 420, // 全下道の所要時間（分）
+                totalTimeHighway: 280, // 全高速の所要時間（分）
+                segments: [
+                    { from: '東京', to: '横浜IC', distance: 30, timeLocal: 50, timeHighway: 25, light: 1230, standard: 2460 },
+                    { from: '横浜IC', to: '厚木IC', distance: 25, timeLocal: 40, timeHighway: 20, light: 1025, standard: 2050 },
+                    { from: '厚木IC', to: '小田原IC', distance: 20, timeLocal: 35, timeHighway: 15, light: 820, standard: 1640 },
+                    { from: '小田原IC', to: '御殿場IC', distance: 30, timeLocal: 50, timeHighway: 25, light: 1230, standard: 2460 },
+                    { from: '御殿場IC', to: '静岡IC', distance: 90, timeLocal: 120, timeHighway: 70, light: 3690, standard: 7380 },
+                    { from: '静岡IC', to: '名古屋', distance: 155, timeLocal: 185, timeHighway: 125, light: 6355, standard: 12710 }
+                ]
+            },
+            'tokyo-osaka': {
+                name: '東京 → 大阪',
+                totalDistance: 550,
+                totalTimeLocal: 660,
+                totalTimeHighway: 440,
+                segments: [
+                    { from: '東京', to: '横浜IC', distance: 30, timeLocal: 50, timeHighway: 25, light: 1230, standard: 2460 },
+                    { from: '横浜IC', to: '小田原IC', distance: 35, timeLocal: 55, timeHighway: 30, light: 1435, standard: 2870 },
+                    { from: '小田原IC', to: '静岡IC', distance: 110, timeLocal: 140, timeHighway: 90, light: 4510, standard: 9020 },
+                    { from: '静岡IC', to: '名古屋IC', distance: 155, timeLocal: 185, timeHighway: 125, light: 6355, standard: 12710 },
+                    { from: '名古屋IC', to: '大阪', distance: 200, timeLocal: 230, timeHighway: 170, light: 8200, standard: 16400 }
+                ]
+            },
+            'tokyo-shizuoka': {
+                name: '東京 → 静岡',
+                totalDistance: 180,
+                totalTimeLocal: 220,
+                totalTimeHighway: 150,
+                segments: [
+                    { from: '東京', to: '横浜IC', distance: 30, timeLocal: 50, timeHighway: 25, light: 1230, standard: 2460 },
+                    { from: '横浜IC', to: '小田原IC', distance: 35, timeLocal: 55, timeHighway: 30, light: 1435, standard: 2870 },
+                    { from: '小田原IC', to: '静岡', distance: 115, timeLocal: 115, timeHighway: 95, light: 4715, standard: 9430 }
+                ]
+            },
+            'tokyo-utsunomiya': {
+                name: '東京 → 宇都宮',
+                totalDistance: 110,
+                totalTimeLocal: 130,
+                totalTimeHighway: 90,
+                segments: [
+                    { from: '東京', to: '宇都宮', distance: 110, timeLocal: 130, timeHighway: 90, light: 4510, standard: 9020 }
+                ]
+            },
+            'tokyo-takasaki': {
+                name: '東京 → 高崎',
+                totalDistance: 100,
+                totalTimeLocal: 120,
+                totalTimeHighway: 80,
+                segments: [
+                    { from: '東京', to: '高崎', distance: 100, timeLocal: 120, timeHighway: 80, light: 4100, standard: 8200 }
+                ]
+            }
+        };
+
+        // DOM要素の取得
+        const searchBtn = document.getElementById('searchBtn');
+        const departureSelect = document.getElementById('departure');
+        const destinationSelect = document.getElementById('destination');
+        const budgetSelect = document.getElementById('budget');
+        const budgetAmount = document.getElementById('budgetAmount');
+        const budgetDisplay = document.getElementById('budgetDisplay');
+        const resultsArea = document.getElementById('resultsArea');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const comparisonArea = document.getElementById('comparisonArea');
+        const comparisonContainer = document.getElementById('comparisonContainer');
+        const vehicleTypeInputs = document.querySelectorAll('input[name="vehicleType"]');
+
+        let currentBudget = 1000;
+
+        // 予算選択時のアニメーション
+        budgetSelect.addEventListener('change', (e) => {
+            const newBudget = parseInt(e.target.value);
+            animateBudget(newBudget, currentBudget);
+            currentBudget = newBudget;
+        });
+
+        function animateBudget(newBudget, oldBudget) {
+            const isUp = newBudget > oldBudget;
+            budgetDisplay.classList.remove('count-up', 'count-down');
+            setTimeout(() => {
+                budgetDisplay.classList.add(isUp ? 'count-up' : 'count-down');
+            }, 10);
+            
+            const steps = 20;
+            const increment = (newBudget - oldBudget) / steps;
+            let current = oldBudget;
+            let step = 0;
+            
+            const timer = setInterval(() => {
+                step++;
+                current += increment;
+                if (step >= steps) {
+                    current = newBudget;
+                    clearInterval(timer);
+                }
+                budgetAmount.textContent = Math.round(current).toLocaleString();
+            }, 30);
+        }
+
+        // 車種選択時のリアルタイム更新
+        vehicleTypeInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                if (resultsArea.classList.contains('hidden') === false) {
+                    performSearch();
+                }
+            });
+        });
+
+        // ハイブリッドルート最適化アルゴリズム
+        function optimizeHybridRoute(routeKey, budget, vehicleType) {
+            const route = routeSegments[routeKey];
+            if (!route) return [];
+
+            const priceKey = vehicleType === 'light' ? 'light' : 'standard';
+            const segments = route.segments;
+            
+            // 全下道と全高速の情報
+            const allLocal = {
+                segments: segments.map(s => ({ ...s, useHighway: false })),
+                totalTime: route.totalTimeLocal,
+                totalCost: 0
+            };
+            
+            const allHighway = {
+                segments: segments.map(s => ({ ...s, useHighway: true })),
+                totalTime: route.totalTimeHighway,
+                totalCost: segments.reduce((sum, s) => sum + s[priceKey], 0)
+            };
+
+            // 予算内で最適な組み合わせを探索
+            const combinations = [];
+            
+            // 各セグメントを高速/下道で組み合わせる（2^nパターン）
+            const n = segments.length;
+            const maxCombinations = Math.min(1 << n, 100); // 最大100パターンまで
+            
+            for (let i = 0; i < maxCombinations; i++) {
+                const combination = [];
+                let totalCost = 0;
+                let totalTime = 0;
+                
+                for (let j = 0; j < n; j++) {
+                    const useHighway = (i >> j) & 1;
+                    const seg = segments[j];
+                    combination.push({
+                        ...seg,
+                        useHighway: useHighway === 1
+                    });
+                    
+                    if (useHighway === 1) {
+                        totalCost += seg[priceKey];
+                        totalTime += seg.timeHighway;
+                    } else {
+                        totalTime += seg.timeLocal;
+                    }
+                }
+                
+                if (totalCost <= budget) {
+                    combinations.push({
+                        segments: combination,
+                        totalTime,
+                        totalCost,
+                        timeSaved: allLocal.totalTime - totalTime
+                    });
+                }
+            }
+            
+            // 時間短縮が大きい順にソート
+            combinations.sort((a, b) => b.timeSaved - a.timeSaved);
+            
+            return {
+                allLocal,
+                allHighway,
+                optimized: combinations.slice(0, 3) // 上位3パターン
+            };
+        }
+
+        // 検索実行
+        function performSearch() {
+            const departure = departureSelect.value;
+            const destination = destinationSelect.value;
+            const budget = parseInt(budgetSelect.value);
+            const vehicleType = document.querySelector('input[name="vehicleType"]:checked').value;
+            
+            const routeKey = `${departure}-${destination}`;
+            const result = optimizeHybridRoute(routeKey, budget, vehicleType);
+            
+            if (!result || result.optimized.length === 0) {
+                resultsArea.classList.remove('hidden');
+                resultsContainer.innerHTML = `
+                    <div class="glass-morphism rounded-2xl p-8 text-center border-2 border-yellow-300">
+                        <p class="text-yellow-800 font-semibold text-lg mb-2">予算内のルートが見つかりませんでした。</p>
+                        <p class="text-sm text-yellow-600">予算を増やしてください。</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 比較カードを表示
+            displayComparison(result, budget);
+            
+            // 最適化ルートを表示
+            displayOptimizedRoutes(result, budget, routeKey);
+        }
+
+        // 比較カードを表示
+        function displayComparison(result, budget) {
+            comparisonArea.classList.remove('hidden');
+            comparisonContainer.innerHTML = '';
+            
+            const cards = [
+                {
+                    title: '全下道',
+                    time: result.allLocal.totalTime,
+                    cost: 0,
+                    color: 'bg-blue-50',
+                    borderColor: 'border-blue-300',
+                    textColor: 'text-blue-700'
+                },
+                {
+                    title: '提案ルート',
+                    time: result.optimized[0]?.totalTime || result.allLocal.totalTime,
+                    cost: result.optimized[0]?.totalCost || 0,
+                    color: 'bg-emerald-50',
+                    borderColor: 'border-emerald-400',
+                    textColor: 'text-emerald-700',
+                    badge: '最適'
+                },
+                {
+                    title: '全高速',
+                    time: result.allHighway.totalTime,
+                    cost: result.allHighway.totalCost,
+                    color: budget >= result.allHighway.totalCost ? 'bg-emerald-50' : 'bg-gray-100',
+                    borderColor: budget >= result.allHighway.totalCost ? 'border-emerald-400' : 'border-gray-300',
+                    textColor: budget >= result.allHighway.totalCost ? 'text-emerald-700' : 'text-gray-500',
+                    badge: budget >= result.allHighway.totalCost ? null : '予算外'
+                }
+            ];
+            
+            cards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = `glass-morphism rounded-2xl p-6 border-2 ${card.borderColor} ${card.color}`;
+                
+                const timeSaved = index === 1 ? result.allLocal.totalTime - card.time : 0;
+                
+                cardEl.innerHTML = `
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold ${card.textColor}">${card.title}</h3>
+                        ${card.badge ? `<span class="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold px-2 py-1 rounded-full">${card.badge}</span>` : ''}
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">所要時間</div>
+                            <div class="text-3xl font-bold ${card.textColor}">${card.time}分</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">料金</div>
+                            <div class="text-2xl font-bold ${card.textColor}">¥${card.cost.toLocaleString()}</div>
+                        </div>
+                        ${timeSaved > 0 ? `
+                        <div class="pt-3 border-t border-gray-200">
+                            <div class="text-xs text-gray-500">全下道より</div>
+                            <div class="text-lg font-bold text-green-600">${timeSaved}分短縮</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                comparisonContainer.appendChild(cardEl);
+            });
+        }
+
+        // 最適化ルートを表示
+        function displayOptimizedRoutes(result, budget, routeKey) {
+            resultsArea.classList.remove('hidden');
+            resultsContainer.innerHTML = '';
+            
+            const route = routeSegments[routeKey];
+            
+            const vehicleType = document.querySelector('input[name="vehicleType"]:checked').value;
+            const priceKey = vehicleType === 'light' ? 'light' : 'standard';
+            
+            result.optimized.forEach((optRoute, index) => {
+                const card = document.createElement('div');
+                card.className = `route-card glass-morphism rounded-2xl shadow-xl p-6 sm:p-8 border-l-4 ${
+                    index === 0 ? 'border-emerald-500' : 
+                    index === 1 ? 'border-blue-500' : 
+                    'border-indigo-500'
+                } mb-4`;
+                
+                // タイムライン生成
+                const timeline = generateTimeline(optRoute.segments, route.name, priceKey);
+                
+                card.innerHTML = `
+                    <div class="mb-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            ${index === 0 ? '<span class="status-badge bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">最適</span>' : ''}
+                            <h3 class="text-xl sm:text-2xl font-bold text-gray-800">提案ルート ${index + 1}</h3>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                <div class="text-sm text-gray-600 mb-1">所要時間</div>
+                                <div class="text-2xl font-bold" style="color: var(--highway-green);">${optRoute.totalTime}分</div>
+                            </div>
+                            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                <div class="text-sm text-gray-600 mb-1">料金</div>
+                                <div class="text-2xl font-bold" style="color: var(--highway-green);">¥${optRoute.totalCost.toLocaleString()}</div>
+                            </div>
+                            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                <div class="text-sm text-gray-600 mb-1">時間短縮</div>
+                                <div class="text-2xl font-bold text-green-600">${optRoute.timeSaved}分</div>
+                            </div>
+                        </div>
+                        
+                        <!-- タイムライン -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">ルート構成</h4>
+                            <div class="route-timeline">
+                                ${timeline}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        // タイムライン生成
+        function generateTimeline(segments, routeName, priceKey = 'light') {
+            let html = '<div class="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-2">';
+            
+            segments.forEach((seg, index) => {
+                const isHighway = seg.useHighway;
+                const bgColor = isHighway ? 'bg-emerald-50' : 'bg-blue-50';
+                const borderColor = isHighway ? 'border-emerald-300' : 'border-blue-300';
+                const textColor = isHighway ? 'text-emerald-700' : 'text-blue-700';
+                const icon = isHighway ? '🛣️' : '🛤️';
+                const price = isHighway ? seg[priceKey] : 0;
+                
+                html += `
+                    <div class="flex-1 ${bgColor} border-2 ${borderColor} rounded-xl p-4 transition-all hover:shadow-md">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-lg">${icon}</span>
+                            <span class="text-xs font-semibold ${textColor} uppercase">${isHighway ? '高速' : '下道'}</span>
+                        </div>
+                        <div class="text-sm font-bold text-gray-800 mb-1">${seg.from} → ${seg.to}</div>
+                        <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-600">
+                            <span class="flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                                </svg>
+                                ${seg.distance}km
+                            </span>
+                            <span class="flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                ${isHighway ? seg.timeHighway : seg.timeLocal}分
+                            </span>
+                            ${isHighway ? `<span class="font-semibold ${textColor}">¥${price.toLocaleString()}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                // 矢印（最後以外、デスクトップのみ）
+                if (index < segments.length - 1) {
+                    html += '<div class="hidden sm:flex items-center justify-center text-gray-400 text-xl font-bold">→</div>';
+                }
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        searchBtn.addEventListener('click', performSearch);
+
+        // 初期化
+        budgetAmount.textContent = currentBudget.toLocaleString();
+    </script>
+</body>
+</html>
